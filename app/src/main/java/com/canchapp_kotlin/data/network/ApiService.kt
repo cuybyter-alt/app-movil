@@ -15,5 +15,9 @@ interface ApiService {
     suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
 
     @GET("api/complexes/")
-    suspend fun getComplexes(@Query("page") page: Int = 1): Response<ComplexListResponse>
+    suspend fun getComplexes(
+        @Query("page") page: Int = 1,
+        @Query("lat")  lat: Double? = null,
+        @Query("lon")  lon: Double? = null
+    ): Response<ComplexListResponse>
 }
