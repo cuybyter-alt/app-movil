@@ -1,17 +1,13 @@
-package com.canchapp_kotlin
+﻿package com.canchapp_kotlin
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.runtime.*
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.canchapp_kotlin.ui.auth.AuthViewModel
 import com.canchapp_kotlin.ui.theme.CanchappkotlinTheme
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 
 enum class AppScreen { REGISTER_LANDING, LOGIN, REGISTER_FORM, HOME }
 
@@ -21,42 +17,32 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             CanchappkotlinTheme {
-                val navController = rememberNavController()
+                val authViewModel: AuthViewModel = viewModel()
+                val loggedUser by authViewModel.loggedUser.collectAsState()
+                var currentScreen by remember { mutableStateOf(AppScreen.REGISTER_LANDING) }
 
-                NavHost(
-                    navController = navController,
-                    startDestination = "register"   // Pantalla inicial
-                ) {
-
-                    composable("register") {
-                        RegisterScreen(
-                            onRegisterWithGoogle    = { /* TODO */ },
-                            onRegisterWithInstagram = { /* TODO */ },
-                            onRegisterWithTikTok    = { /* TODO */ },
-                            onRegisterWithEmail     = { /* TODO */ },
-                            onLoginClick = { navController.navigate("login") }
-                        )
-                    }
-
-                    composable("login") {
-                        LoginScreen(
-                            onLoginWithGoogle    = { /* TODO */ },
-                            onLoginWithInstagram = { /* TODO */ },
-                            onLoginWithTikTok    = { /* TODO */ },
-                            onLoginWithEmail = { navController.navigate("login_email") },
-                            onRegisterClick  = { navController.navigate("register") }
-                        )
-                    }
-
-                    composable("login_email") {
-                        LoginEmailScreen(
-                            onBack           = { navController.popBackStack() },
-                            onForgotPassword = { /* TODO */ },
-                            onRegisterClick  = { navController.navigate("register") },
-                            onLogin = { email, password ->
-                            }
-                        )
-                    }
+                when (currentScreen) {
+                    AppScreen.REGISTER_LANDING -> RegisterScreen(
+                        onRegisterWithEmail = { currentScreen = AppScreen.REGISTER_FORM },
+                        onLoginClick        = { currentScreen = AppScreen.LOGIN }
+                    )
+                    AppScreen.LOGIN -> LoginScreen(
+                        onLoginSuccess  = { currentScreen = AppScreen.HOME },
+                        onRegisterClick = { currentScreen = AppScreen.REGISTER_LANDING },
+                        authViewModel   = authViewModel
+                    )
+                    AppScreen.REGISTER_FORM -> RegisterFormScreen(
+                        onRegisterSuccess = { currentScreen = AppScreen.LOGIN },
+                        onLoginClick      = { currentScreen = AppScreen.LOGIN },
+                        authViewModel     = authViewModel
+                    )
+                    AppScreen.HOME -> HomeScreen(
+                        user     = loggedUser,
+                        onLogout = {
+                            authViewModel.logout()
+                            currentScreen = AppScreen.LOGIN
+                        }
+                    )
                 }
             }
         }
