@@ -68,4 +68,11 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.androidx.compose.material.icons.extended)
+
+    // Mapbox Maps SDK
+    implementation("com.mapbox.maps:android-ndk27:11.20.2")
+    implementation("com.mapbox.extension:maps-compose-ndk27:11.20.2")
+
+    // Location services
+    implementation("com.google.android.gms:play-services-location:21.3.0")
 }
