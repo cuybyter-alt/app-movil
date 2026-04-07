@@ -16,14 +16,24 @@ class ComplexViewModel : ViewModel() {
     private val _complexesState = MutableStateFlow<Resource<ComplexListResponse>?>(null)
     val complexesState = _complexesState.asStateFlow()
 
+    // Last known user location
+    private var userLat: Double? = null
+    private var userLon: Double? = null
+
     init {
+        loadComplexes()
+    }
+
+    fun updateLocation(lat: Double, lon: Double) {
+        userLat = lat
+        userLon = lon
         loadComplexes()
     }
 
     fun loadComplexes(page: Int = 1) {
         viewModelScope.launch {
             _complexesState.value = Resource.Loading
-            _complexesState.value = repository.getComplexes(page)
+            _complexesState.value = repository.getComplexes(page, userLat, userLon)
         }
     }
 }

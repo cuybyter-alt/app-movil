@@ -1,5 +1,9 @@
 ﻿package com.canchapp_kotlin
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,8 +17,10 @@ import androidx.compose.material.icons.filled.BookOnline
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
@@ -26,16 +32,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.canchapp_kotlin.data.network.ComplexDto
 import com.canchapp_kotlin.data.network.UserDto
 import com.canchapp_kotlin.ui.complex.ComplexViewModel
 import com.canchapp_kotlin.ui.components.TopNavBar
+import com.canchapp_kotlin.ui.map.ComplexMapView
 import com.canchapp_kotlin.util.Resource
+import com.canchapp_kotlin.util.getCurrentLocation
 import kotlinx.coroutines.launch
 
 private val HWhiteBg       = Color(0xFFF5F5F5)
@@ -208,13 +218,61 @@ fun HomeScreen(
     onLogout: () -> Unit,
     complexViewModel: ComplexViewModel = viewModel()
 ) {
+    val context        = LocalContext.current
     val complexesState by complexViewModel.complexesState.collectAsState()
     val drawerState    = rememberDrawerState(DrawerValue.Closed)
     val scope          = rememberCoroutineScope()
     var searchQuery    by remember { mutableStateOf("") }
+    var showMap        by remember { mutableStateOf(false) }
+
+    // ── LOCATION ───────────────────────────────────────────────────────────
+    var userLat by remember { mutableStateOf<Double?>(null) }
+    var userLon by remember { mutableStateOf<Double?>(null) }
+    var locationDenied by remember { mutableStateOf(false) }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                      permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            scope.launch {
+                val location = getCurrentLocation(context)
+                if (location != null) {
+                    userLat = location.latitude
+                    userLon = location.longitude
+                    complexViewModel.updateLocation(location.latitude, location.longitude)
+                }
+            }
+        } else {
+            locationDenied = true
+        }
+    }
+
+    // Request location permission on first composition
+    LaunchedEffect(Unit) {
+        val fine   = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
+        if (fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED) {
+            val location = getCurrentLocation(context)
+            if (location != null) {
+                userLat = location.latitude
+                userLon = location.longitude
+                complexViewModel.updateLocation(location.latitude, location.longitude)
+            }
+        } else {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
+            )
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = !showMap,
         drawerContent = {
             AppDrawerContent(
                 user     = user,
@@ -237,7 +295,98 @@ fun HomeScreen(
                 onSearchClick  = {}
             )
 
-            // ── CONTENT ────────────────────────────────────────────────
+            // ── LIST / MAP TAB ROW ─────────────────────────────────────
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = !showMap,
+                    onClick  = { showMap = false },
+                    label    = { Text("Lista") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.List,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = HGreenAccent,
+                        selectedLabelColor = Color.White,
+                        selectedLeadingIconColor = Color.White
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
+                FilterChip(
+                    selected = showMap,
+                    onClick  = { showMap = true },
+                    label    = { Text("Mapa") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Map,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = HGreenAccent,
+                        selectedLabelColor = Color.White,
+                        selectedLeadingIconColor = Color.White
+                    ),
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Location denied banner
+            if (locationDenied) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                    color = Color(0xFFFFF3E0),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = Color(0xFFE65100),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Sin ubicación: no se puede calcular distancia a las canchas.",
+                            fontSize = 12.sp,
+                            color = Color(0xFFE65100)
+                        )
+                    }
+                }
+            }
+
+            // ── MAP VIEW ──────────────────────────────────────────────
+            if (showMap) {
+                val complexes = when (val state = complexesState) {
+                    is Resource.Success -> state.data.data?.items ?: emptyList()
+                    else -> emptyList()
+                }
+                ComplexMapView(
+                    complexes = complexes,
+                    userLat   = userLat,
+                    userLon   = userLon,
+                    modifier  = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 0.dp)
+                )
+                return@ModalNavigationDrawer
+            }
+
+            // ── LIST VIEW ─────────────────────────────────────────────
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),

@@ -9,9 +9,13 @@ class ComplexRepository {
 
     private val api = RetrofitClient.api
 
-    suspend fun getComplexes(page: Int = 1): Resource<ComplexListResponse> {
+    suspend fun getComplexes(
+        page: Int = 1,
+        lat: Double? = null,
+        lon: Double? = null
+    ): Resource<ComplexListResponse> {
         return try {
-            val response = api.getComplexes(page)
+            val response = api.getComplexes(page, lat, lon)
             if (response.isSuccessful) {
                 val body = response.body()
                 if (body?.success == true) {
