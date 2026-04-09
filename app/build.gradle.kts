@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    kotlin("kapt")
 }
 
 android {
@@ -68,7 +69,11 @@ dependencies {
     implementation(libs.okhttp.logging)
     implementation(libs.lifecycle.viewmodel)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
 
+    implementation("com.github.bumptech.glide:glide:4.15.1")
     // Mapbox Maps SDK
     implementation("com.mapbox.maps:android-ndk27:11.20.2")
     implementation("com.mapbox.extension:maps-compose-ndk27:11.20.2")

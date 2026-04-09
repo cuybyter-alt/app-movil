@@ -7,9 +7,10 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.canchapp_kotlin.ui.auth.AuthViewModel
+import com.canchapp_kotlin.ui.favorites.FavoritesScreen
 import com.canchapp_kotlin.ui.theme.CanchappkotlinTheme
 
-enum class AppScreen { REGISTER_LANDING, LOGIN, REGISTER_FORM, HOME }
+enum class AppScreen { REGISTER_LANDING, LOGIN, REGISTER_FORM, HOME, FAVORITES }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,7 +42,11 @@ class MainActivity : ComponentActivity() {
                         onLogout = {
                             authViewModel.logout()
                             currentScreen = AppScreen.LOGIN
-                        }
+                        },
+                        onNavigateToFavorites = { currentScreen = AppScreen.FAVORITES } // 👈
+                    )
+                    AppScreen.FAVORITES -> FavoritesScreen(       // 👈 nueva rama
+                        onBack = { currentScreen = AppScreen.HOME }
                     )
                 }
             }
