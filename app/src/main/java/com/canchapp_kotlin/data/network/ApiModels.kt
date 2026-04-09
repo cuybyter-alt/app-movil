@@ -2,8 +2,6 @@ package com.canchapp_kotlin.data.network
 
 import com.google.gson.annotations.SerializedName
 
-// ── LOGIN ──────────────────────────────────────────────────────────────────
-
 data class LoginRequest(
     val identifier: String,
     val password: String
@@ -22,8 +20,6 @@ data class LoginData(
     val user: UserDto
 )
 
-// ── REGISTER ───────────────────────────────────────────────────────────────
-
 data class RegisterRequest(
     val email: String,
     @SerializedName("f_name") val firstName: String,
@@ -39,8 +35,6 @@ data class RegisterResponse(
     val data: UserDto?,
     val error: ApiError?
 )
-
-// ── SHARED ─────────────────────────────────────────────────────────────────
 
 data class UserDto(
     @SerializedName("user_id")    val userId: String,
@@ -59,8 +53,6 @@ data class ApiError(
     val message: String?,
     val details: Map<String, Any>?
 )
-
-// ── COMPLEXES ──────────────────────────────────────────────────────────────
 
 data class ComplexDto(
     @SerializedName("complex_id")   val complexId: String,

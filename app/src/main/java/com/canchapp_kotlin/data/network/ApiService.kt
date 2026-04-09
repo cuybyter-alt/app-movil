@@ -13,7 +13,7 @@ interface ApiService {
 
     @POST("api/identity/register/")
     suspend fun register(@Body request: RegisterRequest): Response<RegisterResponse>
-
+    // Courutines
     @GET("api/complexes/")
     suspend fun getComplexes(
         @Query("page") page: Int = 1,
