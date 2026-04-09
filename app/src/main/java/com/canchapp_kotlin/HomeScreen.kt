@@ -47,6 +47,10 @@ import com.canchapp_kotlin.ui.map.ComplexMapView
 import com.canchapp_kotlin.util.Resource
 import com.canchapp_kotlin.util.getCurrentLocation
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.FavoriteBorder
+import com.canchapp_kotlin.data.local.CanchaFavorita
+import com.canchapp_kotlin.ui.favorites.FavoritesViewModel
+import kotlinx.coroutines.launch
 
 private val HWhiteBg       = Color(0xFFF5F5F5)
 private val HGreenAccent   = Color(0xFF4CAF50)
@@ -76,7 +80,8 @@ private val drawerItems = listOf(
 private fun AppDrawerContent(
     user: UserDto?,
     onClose: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onNavigateToFavorites: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -163,14 +168,18 @@ private fun AppDrawerContent(
         // ── MENU ITEMS ─────────────────────────────────────────────────
         drawerItems.forEach { item ->
             NavigationDrawerItem(
-                icon = {
-                    Icon(item.icon, contentDescription = item.label, tint = HTextDark)
-                },
-                label = {
-                    Text(item.label, fontWeight = FontWeight.Medium, color = HTextDark)
-                },
+                icon     = { Icon(item.icon, contentDescription = item.label, tint = HTextDark) },
+                label    = { Text(item.label, fontWeight = FontWeight.Medium, color = HTextDark) },
                 selected = false,
-                onClick = { /* TODO: navigate */ },
+                onClick  = {
+                    when (item.label) {
+                        "Favoritos" -> {
+                            onClose()
+                            onNavigateToFavorites()
+                        }
+                        else -> { /* TODO otras pantallas */ }
+                    }
+                },
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
         }
@@ -216,6 +225,7 @@ private fun AppDrawerContent(
 fun HomeScreen(
     user: UserDto?,
     onLogout: () -> Unit,
+    onNavigateToFavorites: () -> Unit = {},
     complexViewModel: ComplexViewModel = viewModel()
 ) {
     val context        = LocalContext.current
@@ -275,11 +285,15 @@ fun HomeScreen(
         gesturesEnabled = !showMap,
         drawerContent = {
             AppDrawerContent(
-                user     = user,
-                onClose  = { scope.launch { drawerState.close() } },
-                onLogout = {
+                user                  = user,
+                onClose               = { scope.launch { drawerState.close() } },
+                onLogout              = {
                     scope.launch { drawerState.close() }
                     onLogout()
+                },
+                onNavigateToFavorites = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToFavorites()
                 }
             )
         }
@@ -530,6 +544,18 @@ fun HomeScreen(
 
 @Composable
 private fun ComplexCard(complex: ComplexDto) {
+    // Variables de estado
+    var isFavorita by remember { mutableStateOf(false) }
+    val favoritesViewModel: FavoritesViewModel = viewModel()
+    val coroutineScope = rememberCoroutineScope()
+
+    // Verifica si es favorita cuando el card carga
+    LaunchedEffect(complex.complexId) {
+        coroutineScope.launch {
+            isFavorita = favoritesViewModel.isFavorita(complex.complexId)
+        }
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -554,6 +580,48 @@ private fun ComplexCard(complex: ComplexDto) {
                         .size(96.dp)
                         .align(Alignment.Center)
                 )
+
+                IconButton(
+                    onClick = {
+                        coroutineScope.launch {
+                            if (isFavorita) {
+                                // Quitar de favoritos
+                                favoritesViewModel.removeFavorita(complex.complexId)
+                                isFavorita = false
+                            } else {
+                                // Agregar a favoritos
+                                val cancha = CanchaFavorita(
+                                    complexId = complex.complexId,
+                                    name = complex.name,
+                                    address = complex.address,
+                                    city = complex.city,
+                                    minPrice = complex.minPrice,
+                                    fieldsCount = complex.fieldsCount,
+                                    distanceKm = complex.distanceKm
+                                )
+                                favoritesViewModel.addFavorita(cancha)
+                                isFavorita = true
+                            }
+                        }
+                    },
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(10.dp)
+                ) {
+                    Icon(
+                        imageVector = if (isFavorita)
+                            Icons.Default.Favorite
+                        else
+                            Icons.Default.FavoriteBorder,
+                        contentDescription = "Favorito",
+                        tint = if (isFavorita)
+                            Color(0xFF4CAF50)  // Verde si es favorita
+                        else
+                            Color(0xFF6B6B6B), // Gris si no
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+
                 Surface(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -629,7 +697,7 @@ private fun ComplexCard(complex: ComplexDto) {
                         colors = ButtonDefaults.buttonColors(containerColor = HGreenAccent),
                         contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
                     ) {
-                        Text("Ver canchas \u2192", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("Ver canchas →", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
             }
