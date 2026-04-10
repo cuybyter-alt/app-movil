@@ -12,12 +12,13 @@ import androidx.room.RoomDatabase
  * - Usa fallbackToDestructiveMigration para desarrollo
  */
 @Database(
-    entities = [CanchaFavorita::class],
-    version = 1,
+    entities = [CanchaFavorita::class, Reserva::class],
+    version = 2,
     exportSchema = false
 )
 abstract class CanchAppDatabase : RoomDatabase() {
     abstract fun canchaFavoritaDao(): CanchaFavoritaDao
+    abstract fun reservaDao(): ReservaDao
     
     companion object {
         // Variable volátil para visibilidad entre threads
@@ -35,7 +36,6 @@ abstract class CanchAppDatabase : RoomDatabase() {
                     CanchAppDatabase::class.java,
                     "canchapp_database"
                 )
-                    // Para desarrollo: elimina y recrea la BD si cambia el schema
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance

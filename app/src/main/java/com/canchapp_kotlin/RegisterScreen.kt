@@ -81,14 +81,6 @@ fun RegisterScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
 
-                // ── LOGO ──────────────────────────────────────────────
-                // Reemplaza este Box por tu Image() cuando tengas el logo.
-                // Ejemplo:
-                //   Image(
-                //       painter = painterResource(id = R.drawable.ic_logo),
-                //       contentDescription = "Logo CanchApp",
-                //       modifier = Modifier.size(80.dp).clip(RoundedCornerShape(16.dp))
-                //   )
                 LogoPlaceholder()
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -165,11 +157,6 @@ fun RegisterScreen(
         }
     }
 }
-
-// ─────────────────────────────────────────────────────────────
-//  COMPONENTE: Placeholder del Logo
-//  Cuando tengas el logo, reemplaza este composable en RegisterScreen
-// ─────────────────────────────────────────────────────────────
 @Composable
 private fun LogoPlaceholder() {
     Image(

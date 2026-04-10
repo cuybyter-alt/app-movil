@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.canchapp_kotlin.data.local.CanchaFavorita
 
-// Colores personalizados (iguales a HomeScreen para consistencia)
 private val HWhiteBg       = Color(0xFFF5F5F5)
 private val HGreenAccent   = Color(0xFF4CAF50)
 private val HCardDarkGreen = Color(0xFF2D4A27)
@@ -46,7 +45,6 @@ fun FavoritesScreen(
             .fillMaxSize()
             .background(HWhiteBg)
     ) {
-        // ━━━ HEADER ━━━
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -54,7 +52,6 @@ fun FavoritesScreen(
                 .statusBarsPadding()
                 .padding(vertical = 16.dp),
         ) {
-            // Botón atrás a la izquierda
             IconButton(
                 onClick = onBack,
                 modifier = Modifier.align(Alignment.CenterStart).padding(start = 4.dp)
@@ -65,7 +62,6 @@ fun FavoritesScreen(
                     tint = Color.White
                 )
             }
-            // Título centrado
             Text(
                 text = "Mis Favoritos",
                 color = Color.White,
@@ -84,7 +80,6 @@ fun FavoritesScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Contador de favoritos
                 item {
                     Text(
                         text = "$totalFavoritas favorita${if (totalFavoritas != 1) "s" else ""}",
@@ -95,8 +90,7 @@ fun FavoritesScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-                
-                // Lista de canchas favoritas
+
                 items(favoritas) { cancha ->
                     FavoritoCanchaCard(
                         cancha = cancha,
@@ -120,7 +114,6 @@ private fun EmptyFavoritesState() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Icono grande
         Icon(
             imageVector = Icons.Default.FavoriteBorder,
             contentDescription = null,
@@ -129,8 +122,7 @@ private fun EmptyFavoritesState() {
         )
         
         Spacer(modifier = Modifier.height(16.dp))
-        
-        // Título
+
         Text(
             text = "No tienes favoritos aún",
             color = HTextDark,
@@ -139,8 +131,7 @@ private fun EmptyFavoritesState() {
         )
         
         Spacer(modifier = Modifier.height(8.dp))
-        
-        // Descripción
+
         Text(
             text = "Agrega canchas a favoritos para verlas aquí",
             color = HTextGray,
@@ -220,8 +211,7 @@ private fun FavoritoCanchaCard(
                 }
                 
                 Spacer(modifier = Modifier.height(12.dp))
-                
-                // Cantidad de canchas
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically

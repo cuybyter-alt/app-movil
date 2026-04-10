@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
 import androidx.compose.material.icons.filled.BookOnline
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -49,7 +50,9 @@ import com.canchapp_kotlin.util.getCurrentLocation
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.FavoriteBorder
 import com.canchapp_kotlin.data.local.CanchaFavorita
+import com.canchapp_kotlin.data.local.Reserva
 import com.canchapp_kotlin.ui.favorites.FavoritesViewModel
+import com.canchapp_kotlin.ui.reservas.ReservasViewModel
 import kotlinx.coroutines.launch
 
 private val HWhiteBg       = Color(0xFFF5F5F5)
@@ -81,7 +84,8 @@ private fun AppDrawerContent(
     user: UserDto?,
     onClose: () -> Unit,
     onLogout: () -> Unit,
-    onNavigateToFavorites: () -> Unit = {}
+    onNavigateToFavorites: () -> Unit = {},
+    onNavigateToReservas: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -177,6 +181,10 @@ private fun AppDrawerContent(
                             onClose()
                             onNavigateToFavorites()
                         }
+                        "Mis Reservas" -> {
+                            onClose()
+                            onNavigateToReservas()
+                        }
                         else -> { /* TODO otras pantallas */ }
                     }
                 },
@@ -226,6 +234,7 @@ fun HomeScreen(
     user: UserDto?,
     onLogout: () -> Unit,
     onNavigateToFavorites: () -> Unit = {},
+    onNavigateToReservas: () -> Unit = {},
     complexViewModel: ComplexViewModel = viewModel()
 ) {
     val context        = LocalContext.current
@@ -294,6 +303,10 @@ fun HomeScreen(
                 onNavigateToFavorites = {
                     scope.launch { drawerState.close() }
                     onNavigateToFavorites()
+                },
+                onNavigateToReservas = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToReservas()
                 }
             )
         }
@@ -547,7 +560,9 @@ private fun ComplexCard(complex: ComplexDto) {
     // Variables de estado
     var isFavorita by remember { mutableStateOf(false) }
     val favoritesViewModel: FavoritesViewModel = viewModel()
+    val reservasViewModel: ReservasViewModel = viewModel()
     val coroutineScope = rememberCoroutineScope()
+    var showReservaDialog by remember { mutableStateOf(false) }
 
     // Verifica si es favorita cuando el card carga
     LaunchedEffect(complex.complexId) {
@@ -691,16 +706,157 @@ private fun ComplexCard(complex: ComplexDto) {
                             fontSize = 20.sp
                         )
                     }
-                    Button(
-                        onClick = { },
-                        shape = RoundedCornerShape(24.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = HGreenAccent),
-                        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
-                    ) {
-                        Text("Ver canchas →", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { showReservaDialog = true },
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = HGreenAccent),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+                        ) {
+                            Text("Reservar", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
+                        Button(
+                            onClick = { },
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = HGreenAccent),
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
+                        ) {
+                            Text("Ver canchas →", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
                     }
                 }
             }
         }
     }
+
+    if (showReservaDialog) {
+        ReservaDialog(
+            complex = complex,
+            onDismiss = { showReservaDialog = false },
+            onConfirm = { reserva ->
+                reservasViewModel.add(reserva)
+                showReservaDialog = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ReservaDialog(
+    complex: ComplexDto,
+    onDismiss: () -> Unit,
+    onConfirm: (Reserva) -> Unit
+) {
+    var fecha    by remember { mutableStateOf("") }
+    var hora     by remember { mutableStateOf("08:00") }
+    var duracion by remember { mutableStateOf(1) }
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    val datePickerState = rememberDatePickerState()
+
+    val precioTotal = complex.minPrice * duracion
+
+    if (showDatePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val millis = datePickerState.selectedDateMillis
+                    if (millis != null) {
+                        val cal = java.util.Calendar.getInstance(java.util.TimeZone.getTimeZone("UTC"))
+                        cal.timeInMillis = millis
+                        fecha = "%04d-%02d-%02d".format(
+                            cal.get(java.util.Calendar.YEAR),
+                            cal.get(java.util.Calendar.MONTH) + 1,
+                            cal.get(java.util.Calendar.DAY_OF_MONTH)
+                        )
+                    }
+                    showDatePicker = false
+                }) { Text("OK") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Reservar en ${complex.name}", fontWeight = FontWeight.Bold)
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // ── Selector de fecha ──────────────────────────────────
+                OutlinedButton(
+                    onClick = { showDatePicker = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.DateRange,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = if (fecha.isBlank()) "Seleccionar fecha" else fecha,
+                        fontWeight = if (fecha.isBlank()) FontWeight.Normal else FontWeight.SemiBold
+                    )
+                }
+                OutlinedTextField(
+                    value = hora,
+                    onValueChange = { hora = it },
+                    label = { Text("Hora (ej: 10:00)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text("Duración: $duracion hora${if (duracion > 1) "s" else ""}", fontWeight = FontWeight.Medium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(1, 2, 3).forEach { h ->
+                        FilterChip(
+                            selected = duracion == h,
+                            onClick = { duracion = h },
+                            label = { Text("${h}h") }
+                        )
+                    }
+                }
+                Text(
+                    text = "Total: \$${(precioTotal / 1000).toInt()}k",
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 18.sp,
+                    color = HGreenAccent
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (fecha.isNotBlank() && hora.isNotBlank()) {
+                        onConfirm(
+                            Reserva(
+                                complexId     = complex.complexId,
+                                complexName   = complex.name,
+                                address       = complex.address,
+                                city          = complex.city,
+                                fecha         = fecha.trim(),
+                                hora          = hora.trim(),
+                                duracionHoras = duracion,
+                                precioTotal   = precioTotal
+                            )
+                        )
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = HGreenAccent)
+            ) {
+                Text("Confirmar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    )
 }
